@@ -3,11 +3,22 @@ from google import genai
 from dotenv import load_dotenv
 import json
 import os
+import streamlit as st
+from supabase import create_client
+from dotenv import load_dotenv
+import os
+import uuid
 import pandas as pd
+import time
+
 
 load_dotenv()
 api_key = os.getenv('API_KEY_GENAI')
 genai_client = genai.Client(api_key=api_key)
+url_supabase = os.getenv('URL_SUPABASE')
+key_supabase = os.getenv('KEY_SUPABASE')
+
+supabase = create_client(url_supabase, key_supabase) 
 
 def gerar_perguntas(tema): 
     response = genai_client.models.generate_content(
@@ -182,8 +193,98 @@ def iniciar_quiz():
                                                      
     elif st.session_state.pagina_atual == 'quiz':
         jogar_quiz(st.session_state.perguntas, st.session_state.pagina_atual)
+
+def tela_cadastro():
+    st.title("Cadastro")
+    with st.form("form_cadastro"):
+        nome = st.text_input("Nome")
+        email = st.text_input("Email")
+        senha = st.text_input("Senha", type="password")
+        foto = st.file_uploader("Foto de perfil", type=["png", "jpg", "jpeg"])
+        submitted = st.form_submit_button("Cadastrar")
+        
+        if submitted:
+            auth_response = supabase.auth.sign_up({
+                "email": email,
+                "password": senha
+            })
+            
+            if auth_response.user:
+                user_id = auth_response.user.id
+                foto_url = None
+                
+                if foto is not None:
+                    caminho = f"perfil/{uuid.uuid4()}_{foto.name}"
+                    foto_bytes = foto.read()
+                    supabase.storage.from_("perfil").upload(caminho, foto_bytes)
+                    foto_url = supabase.storage.from_("perfil").get_public_url(caminho)
+                
+                supabase.table("usuario").insert({
+                    "id": user_id,
+                    "nome": nome,
+                    "foto_perfil": foto_url
+                }).execute()
                 
 
-               
+                st.success("Cadastro realizado! Verifique seu email para confirmar a conta.")
+                time.sleep(5)  
+                st.session_state['pagina_atual'] = "login"
+                st.rerun()
+            else:
+                st.error("Erro ao cadastrar usuário!")
+
+def tela_login():
+    st.title("Login")
+    with st.form("form_login"):
+        email = st.text_input("Email")
+        senha = st.text_input("Senha", type="password")
+        submitted = st.form_submit_button("Entrar")
+        
+        if submitted:
+            try:
+                auth_response = supabase.auth.sign_in_with_password({
+                    "email": email,
+                    "password": senha
+                })
+                
+                if auth_response.user:
+                    st.session_state["user"] = auth_response.user
+                    st.success(f"Bem-vindo, {email}!")
+                    st.session_state['pagina_atual'] = "home"
+                    st.rerun()
+                else:
+                    st.error("Email ou senha incorretos")
+            except Exception as e:
+                if "Email not confirmed" in str(e):
+                    st.warning("Confirme seu email antes de fazer login! Verifique sua caixa de entrada.")
+                else:
+                    st.error(f"Erro ao logar: {e}")
+                
+    if st.button("Não tem conta? Cadastre-se"):
+        st.session_state['pagina_atual'] = "cadastro"
+        st.rerun()
+    
+    if st.button("Esqueci minha senha"):
+        st.session_state['pagina_atual'] = "recuperar_senha"
+        st.rerun()
+
+def tela_recuperar_senha():
+    st.title("Recuperar Senha")
+    with st.form("form_recuperar"):
+        email = st.text_input("Digite seu email")
+        submitted = st.form_submit_button("Enviar link de recuperação")
+        if submitted:
+            try:
+                supabase.auth.reset_password_for_email(email)
+                st.success("Email de recuperação enviado! Verifique sua caixa de entrada.")
+            except Exception as e:
+                st.error(f"Erro: {e}")
+
 if __name__ == '__main__':
-    iniciar_quiz()
+    if 'user' not in st.session_state:
+        if st.session_state.get('pagina_atual') == "cadastro":
+            tela_cadastro()
+        else:
+            tela_login()
+    else:
+        iniciar_quiz()
