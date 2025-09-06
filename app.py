@@ -27,7 +27,7 @@ def tela_cadastro():
     st.markdown("""
                 <style>
                 .block-container {
-                    padding-top: 2.6rem; 
+                    padding-top: 1.6rem; 
                     padding-bottom: 1rem;
                 }
                 </style>
@@ -74,7 +74,7 @@ def tela_login():
     st.markdown("""
                 <style>
                 .block-container {
-                    padding-top: 2.6rem; 
+                    padding-top: 1.6rem; 
                     padding-bottom: 1rem;
                 }
                 </style>
@@ -167,7 +167,7 @@ def jogar_quiz(tema, perguntas, pagina):
     st.markdown("""
                 <style>
                 .block-container {
-                    padding-top: 2.6rem; 
+                    padding-top: 1.6rem; 
                     padding-bottom: 1rem;
                 }
                 .stButton > button {
@@ -197,7 +197,7 @@ def jogar_quiz(tema, perguntas, pagina):
             st.markdown("""
                     <style>
                     .block-container {
-                        padding-top: 2.2rem; 
+                        padding-top: 1.6rem; 
                         padding-bottom: 1rem;
                     }
                     </style>
@@ -275,7 +275,7 @@ def iniciar_quiz():
     st.markdown("""
                     <style>
                     .block-container {
-                        padding-top: 2.6rem; 
+                        padding-top: 1.6rem; 
                         padding-bottom: 1rem;
                           text-align: center;
                     }
@@ -337,14 +337,39 @@ def iniciar_quiz():
         jogar_quiz(st.session_state.tema_escolhido, st.session_state.perguntas, st.session_state.pagina_atual)
 
 
-
 if __name__ == '__main__':
     st.set_page_config(page_title="Bee Smart", layout="wide")
-    pagina_menu = st.radio(
-        "Menu",
-        ["Quiz", "Dashboard"],
-        horizontal=True
-    )
+
+    st.markdown("""
+        <style>
+        .botao-topo {
+            margin-top: 1.5rem; 
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    menu_col1, menu_col2, menu_col3 = st.columns([1,1,0.2])
+    
+    with menu_col1:
+        pagina_menu = st.radio(
+            "Menu",
+            ["Quiz", "Dashboard"],
+            horizontal=True
+        )
+
+    with menu_col3:
+        st.markdown('<div class="botao-topo">', unsafe_allow_html=True)
+        if 'user' in st.session_state:
+            if st.button("❌ Sair"):
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.session_state['pagina_atual'] = 'login'
+                st.rerun()
+        elif st.session_state.get('pagina_atual') == "cadastro":
+            if st.button("🔙 Voltar"):
+                st.session_state['pagina_atual'] = 'login'
+                st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     if pagina_menu == "Quiz":
         if 'user' not in st.session_state:
