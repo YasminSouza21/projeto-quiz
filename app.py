@@ -42,6 +42,9 @@ def tela_cadastro():
                 .st-emotion-cache-wfksaw{
                     gap: 5px;
                 }
+                button .e1hznt4w0{
+                    font-size: 0.8rem;
+                }
                 </style>
             """, unsafe_allow_html=True)
     st.title("Cadastro")
@@ -111,37 +114,41 @@ def tela_login():
         email = st.text_input("Email")
         senha = st.text_input("Senha", type="password")
         submitted = st.form_submit_button("Entrar")
-        
+
         if submitted:
+            erro = False
+
             if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
                 st.error("Email inválido!")
-                st.stop()
+                erro = True
             if len(senha.strip()) == 0:
                 st.error("A senha não pode estar vazia!")
-                st.stop()
+                erro = True
 
-            try:
-                auth_response = supabase.auth.sign_in_with_password({
-                    "email": email,
-                    "password": senha
-                })
-                
-                if auth_response.user:
-                    st.session_state["user"] = auth_response.user
-                    st.success(f"Bem-vindo, {email}!")
-                    st.session_state['pagina_atual'] = "home"
-                    st.rerun()
-                else:
-                    st.error("Email ou senha incorretos")
-            except Exception as e:
-                if "Email not confirmed" in str(e):
-                    st.warning("Confirme seu email antes de fazer login! Verifique sua caixa de entrada.")
-                else:
-                    st.error(f"Erro ao logar: {e}")
-                
+            if not erro: 
+                try:
+                    auth_response = supabase.auth.sign_in_with_password({
+                        "email": email,
+                        "password": senha
+                    })
+                    
+                    if auth_response.user:
+                        st.session_state["user"] = auth_response.user
+                        st.success(f"Bem-vindo, {email}!")
+                        st.session_state['pagina_atual'] = "home"
+                        st.rerun()
+                    else:
+                        st.error("Email ou senha incorretos")
+                except Exception as e:
+                    if "Email not confirmed" in str(e):
+                        st.warning("Confirme seu email antes de fazer login! Verifique sua caixa de entrada.")
+                    else:
+                        st.error(f"Erro ao logar: {e}")
+
     if st.button("Não tem conta? Cadastre-se"):
         st.session_state['pagina_atual'] = "cadastro"
         st.rerun()
+
 
 def gerar_perguntas(tema): 
     response = genai_client.models.generate_content(
