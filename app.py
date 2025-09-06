@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import json
 import os
 import streamlit as st
-from supabase import create_client
+from supabase_client import supabase
 from dotenv import load_dotenv
 import os
 import uuid
@@ -15,46 +15,33 @@ from urllib.parse import quote
 import dashboard as dashboard
 import re
 
+
 load_dotenv()
 api_key = os.getenv('API_KEY_GENAI')
 genai_client = genai.Client(api_key=api_key)
-url_supabase = os.getenv('URL_SUPABASE')
-key_supabase = os.getenv('KEY_SUPABASE')
-
-supabase = create_client(url_supabase, key_supabase) 
+supabase = supabase
 
 def tela_cadastro():
     st.markdown("""
-                <style>
-                .block-container {
-                    padding-top: 1.6rem; 
-                    padding-bottom: 0.2rem;
-                }
-                div .stHorizontalBlock{
-                    display: flex;
-                }
-                .st-emotion-cache-1permvm{
-                    gap: 0rem;
-                }
-                .st-emotion-cache-18tdrd9 h1{
-                    padding: 0px 0px 10px 0px;
-                }
-                .st-emotion-cache-wfksaw{
-                    gap: 5px;
-                }
-                button .e1hznt4w0{
-                    font-size: 0.8rem;
-                }
-                </style>
-            """, unsafe_allow_html=True)
+        <style>
+        .block-container { padding-top: 1.6rem; padding-bottom: 0.2rem; }
+        div .stHorizontalBlock{ display: flex; }
+        .st-emotion-cache-1permvm{ gap: 0rem; }
+        .st-emotion-cache-18tdrd9 h1{ padding: 0px 0px 10px 0px; }
+        .st-emotion-cache-wfksaw{ gap: 5px; }
+        button .e1hznt4w0{ font-size: 0.8rem; }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.title("Cadastro")
     st.set_page_config(page_title='Cadastro | Bee Smart', page_icon='🐝', layout='wide')
+
     with st.form("form_cadastro"):
         nome = st.text_input("Nome")
         email = st.text_input("Email")
         senha = st.text_input("Senha", type="password")
         submitted = st.form_submit_button("Cadastrar")
-        
+
         if submitted:
             if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
                 st.error("Email inválido!")
@@ -66,25 +53,34 @@ def tela_cadastro():
                 st.error("O nome não pode estar vazio!")
                 st.stop()
 
-            auth_response = supabase.auth.sign_up({
-                "email": email,
-                "password": senha
-            })
+            for i in range(3):
+                try:
+                    auth_response = supabase.auth.sign_up({
+                        "email": email,
+                        "password": senha
+                    })
+                    break
+                except Exception:
+                    if i < 2:
+                        time.sleep(2)
+                    else:
+                        st.error("Não foi possível conectar ao Supabase. Tente novamente mais tarde.")
+                        st.stop()
             
-            if auth_response.user:
-                user_id = auth_response.user.id
-
+            user_data = auth_response.get("user") or auth_response.get("data", {}).get("user")
+            if user_data:
+                user_id = user_data["id"]
                 supabase.table("usuario").insert({
                     "id": user_id,
                     "nome": nome
                 }).execute()
-                
+
                 st.success("Cadastro realizado! Verifique seu email para confirmar a conta.")
-                time.sleep(5)  
+                time.sleep(5)
                 st.session_state['pagina_atual'] = "login"
                 st.rerun()
             else:
-                st.error("Erro ao cadastrar usuário!")
+                st.error("Erro inesperado ao cadastrar usuário!")
 
 def tela_login():
     st.markdown("""
@@ -189,11 +185,11 @@ def final_quiz(pontuacao):
             st.markdown("##### 🔥 Mandou muito bem! Você dominou o quiz e mostrou que tá por dentro do assunto!", width='content')
             st.image(image_path, caption='Parabéns!', width=715)
         elif pontuacao >= 4:
-            st.markdown(f"## Pontuação :orange[{pontuacao}/5]", width='content')
+            st.markdown(f"## Pontuação :orange[{pontuacao}/10]", width='content')
             st.markdown("##### 👌 Foi bem! Mas dá pra melhorar, que tal tentar mais uma vez e subir sua pontuação?", width='content')
             st.image(image_path, caption='Parabéns!', width=715)
         else:
-            st.markdown(f"## Pontuação :red[{pontuacao}/5]", width='content')
+            st.markdown(f"## Pontuação :red[{pontuacao}/10]", width='content')
             st.markdown("##### 😅 Não foi dessa vez... mas cada tentativa é um aprendizado! Bora de novo?", width='content')
             st.image(image_path, caption='Parabéns!', width=715)
             

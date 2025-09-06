@@ -1,8 +1,9 @@
 import streamlit as st
-from app import supabase
+from supabase_client import supabase
 from urllib.parse import quote
 import pandas as pd
 import altair as alt
+import httpx
 
 
 def pegar_dados_geral_quiz():
