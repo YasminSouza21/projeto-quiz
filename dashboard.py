@@ -122,7 +122,7 @@ def main():
                     with col_ranking:
                         st.markdown('##### ' + str(index+1) + '°')
                     with col_nome:
-                        st.markdown('##### **' + usuario['nome'] + '**')
+                        st.markdown('#### **' + usuario['nome'] + '**')
                     with col_pontuacao:
                         st.markdown('##### **' + str(usuario['pontuacao_total']) + '**')
                 elif  index <= 4 and usuario["usuario_id"] == st.session_state["user"].id:

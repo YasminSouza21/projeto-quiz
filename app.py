@@ -28,7 +28,19 @@ def tela_cadastro():
                 <style>
                 .block-container {
                     padding-top: 1.6rem; 
-                    padding-bottom: 1rem;
+                    padding-bottom: 0.2rem;
+                }
+                div .stHorizontalBlock{
+                    display: flex;
+                }
+                .st-emotion-cache-1permvm{
+                    gap: 0rem;
+                }
+                .st-emotion-cache-18tdrd9 h1{
+                    padding: 0px 0px 10px 0px;
+                }
+                .st-emotion-cache-wfksaw{
+                    gap: 5px;
                 }
                 </style>
             """, unsafe_allow_html=True)
@@ -74,8 +86,23 @@ def tela_login():
     st.markdown("""
                 <style>
                 .block-container {
-                    padding-top: 1.6rem; 
-                    padding-bottom: 1rem;
+                    padding-top:1.5rem; 
+                    padding-bottom: -10rem;
+                }
+                #stToolbarActions{
+                    height: 100px
+                }
+                #login{
+                    padding: 0px 0px 10px 0px;   
+                }
+                button .e1hznt4w0{
+                    font-size: 0.8rem;
+                }
+                .st-emotion-cache-wfksaw{
+                    gap: 5px;
+                }
+                .st-emotion-cache-1permvm{
+                    gap:0px;
                 }
                 </style>
             """, unsafe_allow_html=True)
@@ -131,6 +158,16 @@ def final_quiz(pontuacao):
                         padding-top: 1.2rem; 
                         padding-bottom: 1rem;
                         text-align: center;
+                    }
+                    @media (max-width: 600px){
+                        img{
+                            width: 334px;
+                        }
+                        st-emotion-cache-uxneyj e1hznt4w0 p{
+                            display: flex;
+                            justify-self: center;
+                            padding-left: 140px;
+                        }
                     }
                     </style>
                 """, unsafe_allow_html=True)
@@ -199,6 +236,14 @@ def jogar_quiz(tema, perguntas, pagina):
                     .block-container {
                         padding-top: 1.6rem; 
                         padding-bottom: 1rem;
+                    }
+                    .st-emotion-cache-tn0cau{
+                        gap:0px
+                    }
+                    @media (max-width: 700px){
+                        .st-emotion-cache-tn0cau{
+                            font-size: 0.5rem
+                        }
                     }
                     </style>
                 """, unsafe_allow_html=True)
@@ -279,6 +324,10 @@ def iniciar_quiz():
                         padding-bottom: 1rem;
                           text-align: center;
                     }
+                    .st-emotion-cache-wfksaw{
+                        display:0;
+                        gap:0;
+                    }
                     </style>
                 """, unsafe_allow_html=True)
     
@@ -357,7 +406,7 @@ if __name__ == '__main__':
             horizontal=True
         )
 
-    with menu_col3:
+    with menu_col1:
         st.markdown('<div class="botao-topo">', unsafe_allow_html=True)
         if 'user' in st.session_state:
             if st.button("❌ Sair"):
