@@ -13,6 +13,7 @@ import time
 from datetime import datetime
 from urllib.parse import quote
 import dashboard as dashboard
+import re
 
 load_dotenv()
 api_key = os.getenv('API_KEY_GENAI')
@@ -39,6 +40,16 @@ def tela_cadastro():
         submitted = st.form_submit_button("Cadastrar")
         
         if submitted:
+            if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
+                st.error("Email inválido!")
+                st.stop()
+            if len(senha) < 6:
+                st.error("A senha deve ter pelo menos 6 caracteres!")
+                st.stop()
+            if len(nome.strip()) == 0:
+                st.error("O nome não pode estar vazio!")
+                st.stop()
+
             auth_response = supabase.auth.sign_up({
                 "email": email,
                 "password": senha
@@ -75,6 +86,13 @@ def tela_login():
         submitted = st.form_submit_button("Entrar")
         
         if submitted:
+            if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
+                st.error("Email inválido!")
+                st.stop()
+            if len(senha.strip()) == 0:
+                st.error("A senha não pode estar vazia!")
+                st.stop()
+
             try:
                 auth_response = supabase.auth.sign_in_with_password({
                     "email": email,
@@ -97,18 +115,13 @@ def tela_login():
     if st.button("Não tem conta? Cadastre-se"):
         st.session_state['pagina_atual'] = "cadastro"
         st.rerun()
-    
-    if st.button("Esqueci minha senha"):
-        st.session_state['pagina_atual'] = "recuperar_senha"
-        st.rerun()
 
 def gerar_perguntas(tema): 
     response = genai_client.models.generate_content(
         model='gemini-1.5-flash',
-        contents=f'Faça 5 perguntas sobre esse tema {tema}, cada pergunta deve conter 4 alternativas e suas respectivas explicações, me de em json a reposta do prompt, no json deve conter a chave chamada pergunta, uma chave chamada respostas e uma chave chamada explicações com as 4 alternativas sem nomear elas de A a B ou de 1 a 4 e a chave chamada resposta_correta dizendo qual resposta a correta, mas quero a resposta correta em texto da resposta, não o index que a resposta ta, e traz um titulo sobre o tema do quiz tipo Quiz sobre ai vem o nome do tema e depois um emoji a chave pode ter nome de titulo'
+        contents=f'Faça 10 perguntas sobre esse tema {tema}, cada pergunta deve conter 4 alternativas e suas respectivas explicações, me de em json a reposta do prompt, no json deve conter a chave chamada pergunta, uma chave chamada respostas e uma chave chamada explicações com as 4 alternativas sem nomear elas de A a B ou de 1 a 4 e a chave chamada resposta_correta dizendo qual resposta a correta, mas quero a resposta correta em texto da resposta, não o index que a resposta ta, e traz um titulo sobre o tema do quiz tipo Quiz sobre ai vem o nome do tema e depois um emoji a chave pode ter nome de titulo'
     ).to_json_dict() 
     return str(response['candidates'][0]['content']['parts'][0]['text']).replace('```', '').replace('json', '')
-
 
 def final_quiz(pontuacao):
     st.set_page_config(layout='centered')
@@ -124,12 +137,12 @@ def final_quiz(pontuacao):
     image_path = "images/img-bee-movie.jpg"
     with st.container(horizontal_alignment='center'):
         st.title('Quiz finalizado!! Parabéns!!', width='content')
-        if pontuacao >= 4:
+        if pontuacao >= 8:
             st.balloons()
-            st.markdown(f"## Pontuação :green[{pontuacao}/5]", width='content')
+            st.markdown(f"## Pontuação :green[{pontuacao}/10]", width='content')
             st.markdown("##### 🔥 Mandou muito bem! Você dominou o quiz e mostrou que tá por dentro do assunto!", width='content')
             st.image(image_path, caption='Parabéns!', width=715)
-        elif pontuacao >= 2:
+        elif pontuacao >= 4:
             st.markdown(f"## Pontuação :orange[{pontuacao}/5]", width='content')
             st.markdown("##### 👌 Foi bem! Mas dá pra melhorar, que tal tentar mais uma vez e subir sua pontuação?", width='content')
             st.image(image_path, caption='Parabéns!', width=715)
@@ -189,11 +202,21 @@ def jogar_quiz(tema, perguntas, pagina):
                     }
                     </style>
                 """, unsafe_allow_html=True)
-            st.markdown('## ' + json_perguntas['titulo'])
+
+            titulo = json_perguntas['titulo']
+            
+            st.markdown('## ' + titulo)
             with st.container(border=True, horizontal_alignment='center'):
-                st.markdown(f'### Pergunta {st.session_state.numero_pergunta + 1}/5')
-                st.markdown('#### ' + json_perguntas['perguntas'][st.session_state.numero_pergunta]['pergunta'])
-                for index,resposta in enumerate(json_perguntas['perguntas'][st.session_state.numero_pergunta]['respostas']):
+                st.markdown(f'### Pergunta {st.session_state.numero_pergunta + 1}/10')
+                
+                pergunta_atual = json_perguntas['perguntas'][st.session_state.numero_pergunta]['pergunta']
+                st.markdown('#### ' + pergunta_atual)
+                
+                respostas_validas = []
+                for index, resposta in enumerate(json_perguntas['perguntas'][st.session_state.numero_pergunta]['respostas']):
+                    respostas_validas.append((index, resposta))
+                        
+                for index, resposta in respostas_validas:
                     if st.button(label=resposta, key=f'resposta_{index}', use_container_width=True, disabled=st.session_state.respondeu_pergunta):
                         st.session_state.resposta_respondida = resposta
                         st.session_state.index_resposta_respondida = index
@@ -202,11 +225,14 @@ def jogar_quiz(tema, perguntas, pagina):
                             st.session_state.pontuacao += 1
                         st.rerun()
                 
-                
                 if st.session_state.respondeu_pergunta == True:
                     resposta = st.session_state.resposta_respondida
                     index = st.session_state.index_resposta_respondida
-                    if resposta == json_perguntas['perguntas'][st.session_state.numero_pergunta]['resposta_correta']:
+                    
+                    resposta_correta = json_perguntas['perguntas'][st.session_state.numero_pergunta]['resposta_correta']
+
+    
+                    if resposta == resposta_correta:
                         st.success(
                                 f"🎉 Parabéns!!! Você acertou!\n\n"
                                 f"💡 Explicação: {json_perguntas['perguntas'][st.session_state.numero_pergunta]['explicações'][index]}"
@@ -214,21 +240,21 @@ def jogar_quiz(tema, perguntas, pagina):
                     else:
                         st.error(
                             f"❌ Ops! Resposta errada.\n\n"
-                            f"✅ A resposta certa era **{json_perguntas['perguntas'][st.session_state.numero_pergunta]['resposta_correta']}**.\n\n"
+                            f"✅ A resposta certa era **{resposta_correta}**.\n\n"
                             f"💡 Explicação: {json_perguntas['perguntas'][st.session_state.numero_pergunta]['explicações'][index]}"
                         )  
                         
-                    if st.session_state.respondeu_pergunta != False and st.session_state.numero_pergunta <= 3:
+                    if st.session_state.respondeu_pergunta != False and st.session_state.numero_pergunta <= 8:
                         if st.button(label='Próxima Pergunta', key=f'pergunta_{st.session_state.numero_pergunta}'):
                             st.session_state.respondeu_pergunta = False
                             st.session_state.numero_pergunta += 1
                             st.rerun()
-                    elif st.session_state.respondeu_pergunta != False and st.session_state.numero_pergunta == 4:
+                    elif st.session_state.respondeu_pergunta != False and st.session_state.numero_pergunta == 9:
                         if st.button(label='Terminar quiz', key=f'btn_terminar_quiz_{st.session_state.numero_pergunta}'):
                             supabase.table('quiz').insert(
                             {
                                 'pontuacao' : st.session_state.pontuacao,
-                                'tema' : tema,
+                                'tema' : tema if re.match(r"^[\w\sÀ-ÿ\-\.,;:!?()]+$", tema) else "Tema inválido",
                                 'tema_favoritado': False,
                                 'data_quiz' : datetime.now().isoformat(),
                                 'usuario_id' : st.session_state["user"].id
@@ -241,6 +267,7 @@ def jogar_quiz(tema, perguntas, pagina):
                             st.rerun()
         else:    
             final_quiz(st.session_state.pontuacao)
+
             
 def iniciar_quiz():
     st.set_page_config(page_title='Quiz | Bee Smart', page_icon='🐝', layout='wide')
@@ -290,11 +317,14 @@ def iniciar_quiz():
             
             tema_input = st.text_input('', placeholder='Digite o tema aqui', label_visibility='collapsed') 
             temas_anteriores = st.pills('Temas anteriores', temas[:3], selection_mode='single', label_visibility='collapsed')
-            tema_selecionado = tema_selecionado = tema_input.strip() if tema_input.strip() else (temas_anteriores if temas_anteriores else None)
+            tema_selecionado = tema_input.strip() if tema_input.strip() else (temas_anteriores if temas_anteriores else None)
             
             if st.session_state.tema_escolhido == None and tema_selecionado:
-                st.session_state.tema_escolhido = tema_selecionado
-                st.rerun()
+                if not re.match(r"^[\w\sÀ-ÿ\-\.,;:!?()]+$", tema_selecionado):
+                    st.error("⚠ Tema inválido! Use apenas letras, números e sinais básicos de pontuação.")
+                else:
+                    st.session_state.tema_escolhido = tema_selecionado
+                    st.rerun()
 
             if st.session_state.tema_escolhido != None:
                 with st.spinner(text=f'Aguarde a IA gerar suas perguntas sobre o tema {st.session_state.tema_escolhido}...'):
@@ -307,25 +337,6 @@ def iniciar_quiz():
         jogar_quiz(st.session_state.tema_escolhido, st.session_state.perguntas, st.session_state.pagina_atual)
 
 
-def tela_recuperar_senha():
-    st.markdown("""
-                <style>
-                .block-container {
-                    padding-top: 2.6rem; 
-                    padding-bottom: 1rem;
-                }
-                </style>
-            """, unsafe_allow_html=True)
-    st.title("Recuperar Senha")
-    with st.form("form_recuperar"):
-        email = st.text_input("Digite seu email")
-        submitted = st.form_submit_button("Enviar link de recuperação")
-        if submitted:
-            try:
-                supabase.auth.reset_password_for_email(email)
-                st.success("Email de recuperação enviado! Verifique sua caixa de entrada.")
-            except Exception as e:
-                st.error(f"Erro: {e}")
 
 if __name__ == '__main__':
     st.set_page_config(page_title="Bee Smart", layout="wide")
@@ -339,8 +350,6 @@ if __name__ == '__main__':
         if 'user' not in st.session_state:
             if st.session_state.get('pagina_atual') == "cadastro":
                 tela_cadastro()
-            elif st.session_state.get('pagina_atual') == "recuperar_senha":
-                tela_recuperar_senha()
             else:
                 tela_login()
         else:
@@ -350,4 +359,5 @@ if __name__ == '__main__':
         if 'user' not in st.session_state:
             st.warning("Faça login para acessar o Dashboard")
         else:
-            dashboard.main() 
+            with st.spinner("Carregando dashboard, aguarde..."):
+                dashboard.main()
