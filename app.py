@@ -10,7 +10,9 @@ import os
 import uuid
 import pandas as pd
 import time
-
+from datetime import datetime
+from urllib.parse import quote
+import dashboard as dashboard
 
 load_dotenv()
 api_key = os.getenv('API_KEY_GENAI')
@@ -19,6 +21,86 @@ url_supabase = os.getenv('URL_SUPABASE')
 key_supabase = os.getenv('KEY_SUPABASE')
 
 supabase = create_client(url_supabase, key_supabase) 
+
+def tela_cadastro():
+    st.markdown("""
+                <style>
+                .block-container {
+                    padding-top: 2.6rem; 
+                    padding-bottom: 1rem;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+    st.title("Cadastro")
+    with st.form("form_cadastro"):
+        nome = st.text_input("Nome")
+        email = st.text_input("Email")
+        senha = st.text_input("Senha", type="password")
+        submitted = st.form_submit_button("Cadastrar")
+        
+        if submitted:
+            auth_response = supabase.auth.sign_up({
+                "email": email,
+                "password": senha
+            })
+            
+            if auth_response.user:
+                user_id = auth_response.user.id
+
+                supabase.table("usuario").insert({
+                    "id": user_id,
+                    "nome": nome
+                }).execute()
+                
+                st.success("Cadastro realizado! Verifique seu email para confirmar a conta.")
+                time.sleep(5)  
+                st.session_state['pagina_atual'] = "login"
+                st.rerun()
+            else:
+                st.error("Erro ao cadastrar usuário!")
+
+def tela_login():
+    st.markdown("""
+                <style>
+                .block-container {
+                    padding-top: 2.6rem; 
+                    padding-bottom: 1rem;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+    st.title("Login")
+    with st.form("form_login"):
+        email = st.text_input("Email")
+        senha = st.text_input("Senha", type="password")
+        submitted = st.form_submit_button("Entrar")
+        
+        if submitted:
+            try:
+                auth_response = supabase.auth.sign_in_with_password({
+                    "email": email,
+                    "password": senha
+                })
+                
+                if auth_response.user:
+                    st.session_state["user"] = auth_response.user
+                    st.success(f"Bem-vindo, {email}!")
+                    st.session_state['pagina_atual'] = "home"
+                    st.rerun()
+                else:
+                    st.error("Email ou senha incorretos")
+            except Exception as e:
+                if "Email not confirmed" in str(e):
+                    st.warning("Confirme seu email antes de fazer login! Verifique sua caixa de entrada.")
+                else:
+                    st.error(f"Erro ao logar: {e}")
+                
+    if st.button("Não tem conta? Cadastre-se"):
+        st.session_state['pagina_atual'] = "cadastro"
+        st.rerun()
+    
+    if st.button("Esqueci minha senha"):
+        st.session_state['pagina_atual'] = "recuperar_senha"
+        st.rerun()
 
 def gerar_perguntas(tema): 
     response = genai_client.models.generate_content(
@@ -68,7 +150,18 @@ def final_quiz(pontuacao):
             st.session_state.pontuacao = 0
             st.rerun()
 
-def jogar_quiz(perguntas, pagina):
+def jogar_quiz(tema, perguntas, pagina):
+    st.markdown("""
+                <style>
+                .block-container {
+                    padding-top: 2.6rem; 
+                    padding-bottom: 1rem;
+                }
+                .stButton > button {
+                    font-size: 1.5rem; 
+                }
+                </style>
+            """, unsafe_allow_html=True)
     if pagina == 'quiz':
         
         json_perguntas = json.loads(perguntas)
@@ -86,8 +179,8 @@ def jogar_quiz(perguntas, pagina):
         if 'pontuacao' not in st.session_state:
             st.session_state.pontuacao = 0
             
-        if st.session_state.quiz_iniciado:
-            st.set_page_config(layout='centered')
+        if st.session_state.quiz_iniciado :
+            st.set_page_config(layout='wide')
             st.markdown("""
                     <style>
                     .block-container {
@@ -132,16 +225,35 @@ def jogar_quiz(perguntas, pagina):
                             st.rerun()
                     elif st.session_state.respondeu_pergunta != False and st.session_state.numero_pergunta == 4:
                         if st.button(label='Terminar quiz', key=f'btn_terminar_quiz_{st.session_state.numero_pergunta}'):
+                            supabase.table('quiz').insert(
+                            {
+                                'pontuacao' : st.session_state.pontuacao,
+                                'tema' : tema,
+                                'tema_favoritado': False,
+                                'data_quiz' : datetime.now().isoformat(),
+                                'usuario_id' : st.session_state["user"].id
+                            }).execute()             
+                            
                             st.session_state.quiz_iniciado = False
                             st.session_state.numero_pergunta = 0
                             st.session_state.respondeu_pergunta = False
                             st.session_state.index_resposta_respondida = 0
                             st.rerun()
-        else:                    
+        else:    
             final_quiz(st.session_state.pontuacao)
             
 def iniciar_quiz():
     st.set_page_config(page_title='Quiz | Bee Smart', page_icon='🐝', layout='wide')
+    temas = [item['tema'] for item in supabase.table('quiz').select('tema').eq('usuario_id', st.session_state["user"].id).order(column='tema',desc=True).execute().data]
+    st.markdown("""
+                    <style>
+                    .block-container {
+                        padding-top: 2.6rem; 
+                        padding-bottom: 1rem;
+                          text-align: center;
+                    }
+                    </style>
+                """, unsafe_allow_html=True)
     
     if 'tema_escolhido' not in st.session_state:
         st.session_state.tema_escolhido = None
@@ -155,7 +267,7 @@ def iniciar_quiz():
         with st.container(vertical_alignment='center', horizontal_alignment='center'):
             st.markdown('# Seja bem-vindo ao Quiz :orange[Bee Smart] 🐝', width='content')
             st.markdown('### O Quiz que irá te ajudar a testar seus conhecimentos com qualquer **TEMA**!!!', width='content')
-            col_regra1, col_regra2, col_regra3 = st.columns(3, )
+            col_regra1, col_regra2, col_regra3 = st.columns([1,1,1])
             with col_regra1:
                 st.info(
                     "**🐝 Dica da Bee**\n\n"
@@ -177,7 +289,7 @@ def iniciar_quiz():
             st.markdown('#### ⇩ Insira abaixo o tema no qual você irá jogar ⇩', width='content')
             
             tema_input = st.text_input('', placeholder='Digite o tema aqui', label_visibility='collapsed') 
-            temas_anteriores = st.pills('Temas anteriores', ['IA', 'Python', 'Java'], selection_mode='single', label_visibility='collapsed')
+            temas_anteriores = st.pills('Temas anteriores', temas[:3], selection_mode='single', label_visibility='collapsed')
             tema_selecionado = tema_selecionado = tema_input.strip() if tema_input.strip() else (temas_anteriores if temas_anteriores else None)
             
             if st.session_state.tema_escolhido == None and tema_selecionado:
@@ -192,83 +304,18 @@ def iniciar_quiz():
                         st.rerun()
                                                      
     elif st.session_state.pagina_atual == 'quiz':
-        jogar_quiz(st.session_state.perguntas, st.session_state.pagina_atual)
+        jogar_quiz(st.session_state.tema_escolhido, st.session_state.perguntas, st.session_state.pagina_atual)
 
-def tela_cadastro():
-    st.title("Cadastro")
-    with st.form("form_cadastro"):
-        nome = st.text_input("Nome")
-        email = st.text_input("Email")
-        senha = st.text_input("Senha", type="password")
-        foto = st.file_uploader("Foto de perfil", type=["png", "jpg", "jpeg"])
-        submitted = st.form_submit_button("Cadastrar")
-        
-        if submitted:
-            auth_response = supabase.auth.sign_up({
-                "email": email,
-                "password": senha
-            })
-            
-            if auth_response.user:
-                user_id = auth_response.user.id
-                foto_url = None
-                
-                if foto is not None:
-                    caminho = f"perfil/{uuid.uuid4()}_{foto.name}"
-                    foto_bytes = foto.read()
-                    supabase.storage.from_("perfil").upload(caminho, foto_bytes)
-                    foto_url = supabase.storage.from_("perfil").get_public_url(caminho)
-                
-                supabase.table("usuario").insert({
-                    "id": user_id,
-                    "nome": nome,
-                    "foto_perfil": foto_url
-                }).execute()
-                
-
-                st.success("Cadastro realizado! Verifique seu email para confirmar a conta.")
-                time.sleep(5)  
-                st.session_state['pagina_atual'] = "login"
-                st.rerun()
-            else:
-                st.error("Erro ao cadastrar usuário!")
-
-def tela_login():
-    st.title("Login")
-    with st.form("form_login"):
-        email = st.text_input("Email")
-        senha = st.text_input("Senha", type="password")
-        submitted = st.form_submit_button("Entrar")
-        
-        if submitted:
-            try:
-                auth_response = supabase.auth.sign_in_with_password({
-                    "email": email,
-                    "password": senha
-                })
-                
-                if auth_response.user:
-                    st.session_state["user"] = auth_response.user
-                    st.success(f"Bem-vindo, {email}!")
-                    st.session_state['pagina_atual'] = "home"
-                    st.rerun()
-                else:
-                    st.error("Email ou senha incorretos")
-            except Exception as e:
-                if "Email not confirmed" in str(e):
-                    st.warning("Confirme seu email antes de fazer login! Verifique sua caixa de entrada.")
-                else:
-                    st.error(f"Erro ao logar: {e}")
-                
-    if st.button("Não tem conta? Cadastre-se"):
-        st.session_state['pagina_atual'] = "cadastro"
-        st.rerun()
-    
-    if st.button("Esqueci minha senha"):
-        st.session_state['pagina_atual'] = "recuperar_senha"
-        st.rerun()
 
 def tela_recuperar_senha():
+    st.markdown("""
+                <style>
+                .block-container {
+                    padding-top: 2.6rem; 
+                    padding-bottom: 1rem;
+                }
+                </style>
+            """, unsafe_allow_html=True)
     st.title("Recuperar Senha")
     with st.form("form_recuperar"):
         email = st.text_input("Digite seu email")
@@ -281,10 +328,26 @@ def tela_recuperar_senha():
                 st.error(f"Erro: {e}")
 
 if __name__ == '__main__':
-    if 'user' not in st.session_state:
-        if st.session_state.get('pagina_atual') == "cadastro":
-            tela_cadastro()
+    st.set_page_config(page_title="Bee Smart", layout="wide")
+    pagina_menu = st.radio(
+        "Menu",
+        ["Quiz", "Dashboard"],
+        horizontal=True
+    )
+
+    if pagina_menu == "Quiz":
+        if 'user' not in st.session_state:
+            if st.session_state.get('pagina_atual') == "cadastro":
+                tela_cadastro()
+            elif st.session_state.get('pagina_atual') == "recuperar_senha":
+                tela_recuperar_senha()
+            else:
+                tela_login()
         else:
-            tela_login()
-    else:
-        iniciar_quiz()
+            iniciar_quiz()
+
+    elif pagina_menu == "Dashboard":
+        if 'user' not in st.session_state:
+            st.warning("Faça login para acessar o Dashboard")
+        else:
+            dashboard.main() 
