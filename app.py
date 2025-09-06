@@ -48,6 +48,7 @@ def tela_cadastro():
                 </style>
             """, unsafe_allow_html=True)
     st.title("Cadastro")
+    st.set_page_config(page_title='Cadastro | Bee Smart', page_icon='🐝', layout='wide')
     with st.form("form_cadastro"):
         nome = st.text_input("Nome")
         email = st.text_input("Email")
@@ -110,6 +111,7 @@ def tela_login():
                 </style>
             """, unsafe_allow_html=True)
     st.title("Login")
+    st.set_page_config(page_title='Login | Bee Smart', page_icon='🐝', layout='wide')
     with st.form("form_login"):
         email = st.text_input("Email")
         senha = st.text_input("Senha", type="password")
@@ -158,7 +160,7 @@ def gerar_perguntas(tema):
     return str(response['candidates'][0]['content']['parts'][0]['text']).replace('```', '').replace('json', '')
 
 def final_quiz(pontuacao):
-    st.set_page_config(layout='centered')
+    st.set_page_config(page_title='Final Quiz | Bee Smart', page_icon='🐝', layout='centered')
     st.markdown("""
                     <style>
                     .block-container {
@@ -237,7 +239,7 @@ def jogar_quiz(tema, perguntas, pagina):
             st.session_state.pontuacao = 0
             
         if st.session_state.quiz_iniciado :
-            st.set_page_config(layout='wide')
+            st.set_page_config(page_title='Perguntas | Bee Smart', page_icon='🐝', layout='wide')
             st.markdown("""
                     <style>
                     .block-container {

@@ -82,7 +82,7 @@ def main():
                 """, unsafe_allow_html=True)
     total_jogadores = pegar_dados_geral_usuarios()
     partidas_totais, pontuacao_total = pegar_dados_usuario()
-    st.set_page_config(page_title='Dashboard | Quiz', layout='wide')
+    st.set_page_config(page_title='Dashboard | Quiz', layout='wide', page_icon='🐝')
     
     with st.container():
         cl_metrica1, cl_metrica2, cl_metrica3 = st.columns(3, border=True)
@@ -97,49 +97,49 @@ def main():
             st.metric(label='Sua Pontuação Total', value=pontuacao_total)
             
         col_ranking, col_grafico= st.columns([1, 2], border=True)
-        
- 
         with col_ranking:
             st.subheader("🏆 Ranking Bee Smart")
-            
+
             lista = pegar_ranking()
-            
-            lista_ranking = sorted(lista, key=lambda x: x['pontuacao_total'], reverse=True) 
-           
-            
-            col_ranking, col_nome, col_pontuacao = st.columns([1,1.8,1])
-            
-            with col_ranking:
-                st.markdown('###### Ranking')
-            with col_nome:
-                st.markdown('###### Nome')
-            with col_pontuacao:
-                st.markdown('###### Pontuação')
-            
+            lista_ranking = sorted(lista, key=lambda x: x['pontuacao_total'], reverse=True)
+
+            html = """
+            <style>
+            .ranking {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            }
+            .ranking th, .ranking td {
+            padding: 6px;
+            }
+            .ranking th {
+            background-color: #222;
+            color: #fff;
+            }
+            @media (max-width: 600px) {
+            .ranking th, .ranking td {
+                font-size: 12px;
+                padding: 4px;
+            }
+            }
+            </style>
+            <table class="ranking">
+            <tr><th>Ranking</th><th>Nome</th><th>Pontuação</th></tr>
+            """
+
             for index, usuario in enumerate(lista_ranking):
-                                
-                if index <= 4 and not usuario["usuario_id"] == st.session_state["user"].id: 
-                    with col_ranking:
-                        st.markdown('##### ' + str(index+1) + '°')
-                    with col_nome:
-                        st.markdown('#### **' + usuario['nome'] + '**')
-                    with col_pontuacao:
-                        st.markdown('##### **' + str(usuario['pontuacao_total']) + '**')
-                elif  index <= 4 and usuario["usuario_id"] == st.session_state["user"].id:
-                    with col_ranking:
-                        st.markdown('##### ' + str(index+1) + '°')
-                    with col_nome:
-                        st.markdown('##### **:red[VOCÊ]**')
-                    with col_pontuacao:
-                        st.markdown('##### **' + str(usuario['pontuacao_total']) + '**')
-                elif index >= 5 and usuario["usuario_id"] == st.session_state["user"].id: 
-                    with col_ranking:
-                        st.markdown(f'##### {index+1}°')
-                    with col_nome:
-                        st.markdown('##### **:red[VOCÊ]**')
-                    with col_pontuacao:
-                        st.markdown('##### **' + str(usuario['pontuacao_total']) + '**')
-                        
+                if usuario["usuario_id"] == st.session_state["user"].id:
+                    nome = "<b style='color:red'>VOCÊ</b>"
+                else:
+                    nome = usuario["nome"]
+
+                html += f"<tr><td>{index+1}°</td><td>{nome}</td><td>{usuario['pontuacao_total']}</td></tr>"
+
+            html += "</table>"
+
+            st.markdown(html, unsafe_allow_html=True)
+                
         with col_grafico:
             df = pegar_grafico_linha()
 
