@@ -417,7 +417,7 @@ if __name__ == '__main__':
 
     with menu_col1:
         st.markdown('<div class="botao-topo">', unsafe_allow_html=True)
-        if 'user' in st.session_state:
+        if 'user' in st.session_state and st.session_state.get('pagina_atual') == "home":
             if st.button("❌ Sair"):
                 for key in list(st.session_state.keys()):
                     del st.session_state[key]
