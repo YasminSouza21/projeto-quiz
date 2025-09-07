@@ -34,7 +34,7 @@ def tela_cadastro():
     """, unsafe_allow_html=True)
 
     st.title("Cadastro")
-    st.set_page_config(page_title='Cadastro | Bee Smart', page_icon='🐝', layout='wide')
+    st.set_page_config(page_title='Cadastro | Bee Smart', page_icon='./images/logo-bee-smart.ico', layout='wide')
 
     with st.form("form_cadastro"):
         nome = st.text_input("Nome")
@@ -107,7 +107,7 @@ def tela_login():
                 </style>
             """, unsafe_allow_html=True)
     st.title("Login")
-    st.set_page_config(page_title='Login | Bee Smart', page_icon='🐝', layout='wide')
+    st.set_page_config(page_title='Login | Bee Smart', page_icon='./images/logo-bee-smart.ico', layout='wide')
     with st.form("form_login"):
         email = st.text_input("Email")
         senha = st.text_input("Senha", type="password")
@@ -156,7 +156,7 @@ def gerar_perguntas(tema):
     return str(response['candidates'][0]['content']['parts'][0]['text']).replace('```', '').replace('json', '')
 
 def final_quiz(pontuacao):
-    st.set_page_config(page_title='Final Quiz | Bee Smart', page_icon='🐝', layout='centered')
+    st.set_page_config(page_title='Final Quiz | Bee Smart', page_icon='./images/logo-bee-smart.ico', layout='centered')
     st.markdown("""
                     <style>
                     .block-container {
@@ -235,7 +235,7 @@ def jogar_quiz(tema, perguntas, pagina):
             st.session_state.pontuacao = 0
             
         if st.session_state.quiz_iniciado :
-            st.set_page_config(page_title='Perguntas | Bee Smart', page_icon='🐝', layout='wide')
+            st.set_page_config(page_title='Perguntas | Bee Smart', page_icon='./images/logo-bee-smart.ico', layout='wide')
             st.markdown("""
                     <style>
                     .block-container {
@@ -320,7 +320,7 @@ def jogar_quiz(tema, perguntas, pagina):
 
             
 def iniciar_quiz():
-    st.set_page_config(page_title='Quiz | Bee Smart', page_icon='🐝', layout='wide')
+    st.set_page_config(page_title='Quiz | Bee Smart', page_icon='./images/logo-bee-smart.ico', layout='wide')
     temas = [item['tema'] for item in supabase.table('quiz').select('tema').eq('usuario_id', st.session_state["user"].id).order(column='tema',desc=True).execute().data]
     st.markdown("""
                     <style>
@@ -346,7 +346,7 @@ def iniciar_quiz():
     
     if st.session_state.pagina_atual == 'home':
         with st.container(vertical_alignment='center', horizontal_alignment='center'):
-            st.markdown('# Seja bem-vindo ao Quiz :orange[Bee Smart] 🐝', width='content')
+            st.markdown('# Seja bem-vindo ao Quiz :orange[Bee Smart] ./images/logo-bee-smart.ico', width='content')
             st.markdown('### O Quiz que irá te ajudar a testar seus conhecimentos com qualquer **TEMA**!!!', width='content')
             col_regra1, col_regra2, col_regra3 = st.columns([1,1,1])
             with col_regra1:
@@ -392,7 +392,7 @@ def iniciar_quiz():
 
 
 if __name__ == '__main__':
-    st.set_page_config(page_title="Bee Smart", layout="wide")
+    st.set_page_config(page_title="Bee Smart", layout="wide", page_icon='./images/logo-bee-smart.ico')
 
     st.markdown("""
         <style>
