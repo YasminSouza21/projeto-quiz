@@ -14,6 +14,7 @@ from datetime import datetime
 from urllib.parse import quote
 import dashboard as dashboard
 import re
+import base64
 
 
 load_dotenv()
@@ -321,6 +322,9 @@ def jogar_quiz(tema, perguntas, pagina):
             
 def iniciar_quiz():
     st.set_page_config(page_title='Quiz | Bee Smart', page_icon='./images/logo-bee-smart.ico', layout='wide')
+    file_ = open("images/logo-bee-smart.ico", "rb")
+    contents = file_.read()
+    data_url = base64.b64encode(contents).decode("utf-8")
     temas = [item['tema'] for item in supabase.table('quiz').select('tema').eq('usuario_id', st.session_state["user"].id).order(column='tema',desc=True).execute().data]
     st.markdown("""
                     <style>
@@ -346,7 +350,15 @@ def iniciar_quiz():
     
     if st.session_state.pagina_atual == 'home':
         with st.container(vertical_alignment='center', horizontal_alignment='center'):
-            st.markdown('# Seja bem-vindo ao Quiz :orange[Bee Smart] ./images/logo-bee-smart.ico', width='content')
+            st.markdown(
+                f"""
+                <h1 style="display: inline-flex; align-items: center; gap: 10px;">
+                    Seja bem-vindo ao Quiz <span style="color: orange;">Bee Smart</span>
+                    <img src="data:image/x-icon;base64,{data_url}" width="100">
+                </h1>
+                """,
+                unsafe_allow_html=True
+            )
             st.markdown('### O Quiz que irá te ajudar a testar seus conhecimentos com qualquer **TEMA**!!!', width='content')
             col_regra1, col_regra2, col_regra3 = st.columns([1,1,1])
             with col_regra1:
