@@ -67,9 +67,9 @@ def tela_cadastro():
                         st.error("Não foi possível conectar ao Supabase. Tente novamente mais tarde.")
                         st.stop()
             
-            user_data = auth_response.get("user") or auth_response.get("data", {}).get("user")
+            user_data = auth_response.user
             if user_data:
-                user_id = user_data["id"]
+                user_id = user_data.id
                 supabase.table("usuario").insert({
                     "id": user_id,
                     "nome": nome
