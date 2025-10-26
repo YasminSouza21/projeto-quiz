@@ -149,12 +149,37 @@ def tela_login():
         st.rerun()
 
 
-def gerar_perguntas(tema): 
+def gerar_perguntas(tema):
+    prompt = f"""
+        Gere um quiz em formato JSON com exatamente **10 perguntas** sobre o tema: "{tema}".
+
+        O JSON deve seguir *exatamente* esta estrutura:
+        {{
+        "titulo": "Quiz sobre {tema} 🧠",
+        "perguntas": [
+            {{
+            "pergunta": "texto da pergunta",
+            "respostas": ["alternativa 1", "alternativa 2", "alternativa 3", "alternativa 4"],
+            "explicacoes": ["explicação da alt 1", "explicação da alt 2", "explicação da alt 3", "explicação da alt 4"],
+            "resposta_correta": "texto exato da alternativa correta"
+            }}
+        ]
+        }}
+
+        Regras:
+        - Não use formatação Markdown (sem ``` ou blocos de código).
+        - Use **apenas** JSON válido.
+        - Não inclua comentários ou texto fora do JSON.
+        - As perguntas devem ser variadas e relevantes ao tema.
+        """
     response = genai_client.models.generate_content(
         model='gemini-2.5-flash',
-        contents=f'Faça 10 perguntas sobre esse tema {tema}, cada pergunta deve conter 4 alternativas e suas respectivas explicações, me de em json a reposta do prompt, no json deve conter a chave chamada pergunta, uma chave chamada respostas e uma chave chamada explicações com as 4 alternativas sem nomear elas de A a B ou de 1 a 4 e a chave chamada resposta_correta dizendo qual resposta a correta, mas quero a resposta correta em texto da resposta, não o index que a resposta ta, e traz um titulo sobre o tema do quiz tipo Quiz sobre ai vem o nome do tema e depois um emoji a chave pode ter nome de titulo'
-    ).to_json_dict() 
-    return str(response['candidates'][0]['content']['parts'][0]['text']).replace('```', '').replace('json', '')
+        contents=prompt
+    ).to_json_dict()
+
+    texto_json = response['candidates'][0]['content']['parts'][0]['text']
+    texto_json = texto_json.strip().replace('```', '').replace('json', '')
+    return texto_json
 
 def final_quiz(pontuacao):
     st.set_page_config(page_title='Final Quiz | Bee Smart', page_icon='./images/logo-bee-smart.ico', layout='centered')
@@ -286,13 +311,13 @@ def jogar_quiz(tema, perguntas, pagina):
                     if resposta == resposta_correta:
                         st.success(
                                 f"🎉 Parabéns!!! Você acertou!\n\n"
-                                f"💡 Explicação: {json_perguntas['perguntas'][st.session_state.numero_pergunta]['explicações'][index]}"
+                                f"💡 Explicação: {json_perguntas['perguntas'][st.session_state.numero_pergunta]['explicacoes'][index]}"
                         )
                     else:
                         st.error(
                             f"❌ Ops! Resposta errada.\n\n"
                             f"✅ A resposta certa era **{resposta_correta}**.\n\n"
-                            f"💡 Explicação: {json_perguntas['perguntas'][st.session_state.numero_pergunta]['explicações'][index]}"
+                            f"💡 Explicação: {json_perguntas['perguntas'][st.session_state.numero_pergunta]['explicacoes'][index]}"
                         )  
                         
                     if st.session_state.respondeu_pergunta != False and st.session_state.numero_pergunta <= 8:
